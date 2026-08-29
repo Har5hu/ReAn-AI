@@ -62,13 +62,15 @@ def parse_resume_into_sections(resume_text):
     return sections
 
 def is_bullet_line(line):
-    """Accurately detects all bullet variations including -, •, *, –, —, ◦, ▪, ▫, ➢, >"""
     line_str = line.strip()
-    return bool(re.match(r"^[-•\*–—◦▪▫➢>]\s*", line_str))
+    if not line_str: return False
+    first_char = line_str[0]
+    return not first_char.isalnum()
 
 def strip_bullet_prefix(line):
     line_str = line.strip()
-    return re.sub(r"^[-•\*–—◦▪▫➢>]\s*", "", line_str).strip()
+    if not line_str: return ""
+    return re.sub(r"^[^a-zA-Z0-9]+", "", line_str).strip()
 
 def extract_candidate_header(header_lines):
     if not header_lines:
@@ -83,10 +85,12 @@ def extract_candidate_header(header_lines):
         
     contacts = []
     for line in contact_items:
-        if "@" in line or re.search(r"\d{10}", line) or re.search(r"linkedin|github|phone|email", line.lower()) or len(line) < 50:
-            contacts.append(line)
+        cleaned = line.replace('\uf0b2', '').replace('\uf0e0', '').replace('\uf095', '').replace('\uf08c', '').strip()
+        if cleaned:
+            contacts.append(cleaned)
             
-    contact_str = "  |  ".join(contacts) if contacts else ""
+    contact_str = " | ".join(contacts) if contacts else ""
+    contact_str = re.sub(r'\s+\|\s+', ' | ', contact_str)
     return name, contact_str
 
 def build_single_column_ats_pdf(resume_text, missing_keywords=None):
@@ -95,7 +99,7 @@ def build_single_column_ats_pdf(resume_text, missing_keywords=None):
     - Standard Helvetica & Helvetica-Bold fonts.
     - Bullet text is rendered in NORMAL (non-bold) font matching standard resume formatting.
     - Zero multi-column bleeding (100% linear flow).
-    - Auto-inserts missing hard keywords into Technical Skills.
+    - Auto-inserts missing hard keywords seamlessly.
     """
     if missing_keywords is None:
         missing_keywords = []
@@ -106,23 +110,22 @@ def build_single_column_ats_pdf(resume_text, missing_keywords=None):
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        leftMargin=54,
-        rightMargin=54,
-        topMargin=40,
-        bottomMargin=40
+        leftMargin=50,
+        rightMargin=50,
+        topMargin=36,
+        bottomMargin=36
     )
     
     styles = getSampleStyleSheet()
     
-    # Universal Clean Resume Typography
     name_style = ParagraphStyle(
         'ExecutiveName',
         parent=styles['Heading1'],
         fontName='Helvetica-Bold',
-        fontSize=20,
-        leading=24,
+        fontSize=18,
+        leading=22,
         textColor=colors.HexColor('#0f172a'),
-        alignment=0,
+        alignment=1,
         spaceAfter=4
     )
     
@@ -133,15 +136,16 @@ def build_single_column_ats_pdf(resume_text, missing_keywords=None):
         fontSize=9.5,
         leading=13,
         textColor=colors.HexColor('#334155'),
-        spaceAfter=10
+        alignment=1,
+        spaceAfter=14
     )
     
     section_heading_style = ParagraphStyle(
         'ExecutiveSectionHeading',
         parent=styles['Heading2'],
         fontName='Helvetica-Bold',
-        fontSize=11.5,
-        leading=15,
+        fontSize=11,
+        leading=14,
         textColor=colors.HexColor('#0f172a'),
         spaceBefore=10,
         spaceAfter=2,
@@ -165,26 +169,24 @@ def build_single_column_ats_pdf(resume_text, missing_keywords=None):
         fontSize=10,
         leading=14,
         textColor=colors.HexColor('#0f172a'),
-        spaceBefore=4,
+        spaceBefore=6,
         spaceAfter=2
     )
 
-    # Bullet points MUST use Helvetica (normal weight, NOT bold!)
     bullet_style = ParagraphStyle(
         'ExecutiveBullet',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=9.5,
-        leading=13.5,
+        fontSize=10,
+        leading=14,
         textColor=colors.HexColor('#1e293b'),
-        leftIndent=14,
-        firstLineIndent=-10,
+        leftIndent=12,
+        firstLineIndent=-12,
         spaceAfter=3
     )
 
     story = []
 
-    # 1. CANDIDATE HEADER
     header_lines = sections.get("header", [])
     name, contact_info = extract_candidate_header(header_lines)
     
@@ -192,31 +194,30 @@ def build_single_column_ats_pdf(resume_text, missing_keywords=None):
     if contact_info:
         story.append(Paragraph(contact_info, contact_style))
     else:
-        story.append(Spacer(1, 4))
+        story.append(Spacer(1, 8))
 
-    # 2. PROFILE SUMMARY
     summary_lines = sections.get("summary", [])
     if summary_lines:
         story.append(Paragraph("PROFILE SUMMARY", section_heading_style))
         story.append(HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#1e293b'), spaceBefore=1, spaceAfter=6))
-        story.append(Paragraph(" ".join(summary_lines), body_style))
+        
+        summary_text = " ".join([line.strip() for line in summary_lines if line.strip()])
+        story.append(Paragraph(summary_text, body_style))
         story.append(Spacer(1, 4))
 
-    # 3. EDUCATION
     edu_lines = sections.get("education", [])
     if edu_lines:
         story.append(Paragraph("EDUCATION", section_heading_style))
         story.append(HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#1e293b'), spaceBefore=1, spaceAfter=6))
         
-        for idx in range(0, len(edu_lines), 2):
-            inst = edu_lines[idx]
-            detail = edu_lines[idx+1] if idx+1 < len(edu_lines) else ""
-            story.append(Paragraph(f"<b>{inst}</b>", item_title_style))
-            if detail:
-                story.append(Paragraph(detail, body_style))
+        for line in edu_lines:
+            clean_line = strip_bullet_prefix(line)
+            if "college" in line.lower() or "school" in line.lower() or "university" in line.lower() or "institute" in line.lower():
+                story.append(Paragraph(f"<b>{clean_line}</b>", item_title_style))
+            else:
+                story.append(Paragraph(clean_line, body_style))
         story.append(Spacer(1, 4))
 
-    # 4. TECHNICAL SKILLS (With missing hard skills auto-inserted)
     skills_lines = sections.get("skills", [])
     story.append(Paragraph("SKILLS", section_heading_style))
     story.append(HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#1e293b'), spaceBefore=1, spaceAfter=6))
@@ -225,25 +226,40 @@ def build_single_column_ats_pdf(resume_text, missing_keywords=None):
     cleaned_missing = [clean_skill_name(kw) for kw in missing_keywords if kw.lower() not in existing_skills_text.lower()]
     
     if skills_lines:
+        merged_missing = False
         for s_line in skills_lines:
             clean_s = strip_bullet_prefix(s_line)
+            
+            if cleaned_missing and not merged_missing and "soft skill" not in clean_s.lower():
+                clean_s += ", " + ", ".join(cleaned_missing)
+                merged_missing = True
+                
             story.append(Paragraph(f"&bull; {clean_s}", bullet_style))
+            
+        if cleaned_missing and not merged_missing:
+            story.append(Paragraph(f"&bull; Core Competencies: {', '.join(cleaned_missing)}", bullet_style))
     else:
-        story.append(Paragraph("&bull; Programming Languages & Tools: Python, SQL, R, Excel, Tableau, Power BI", bullet_style))
+        default_skills = ["Python", "SQL", "R", "Excel", "Tableau", "Power BI"] + cleaned_missing
+        story.append(Paragraph(f"&bull; Programming Languages & Tools: {', '.join(default_skills)}", bullet_style))
 
-    if cleaned_missing:
-        added_str = ", ".join(cleaned_missing)
-        story.append(Paragraph(f"&bull; Additional Technical Skills (ATS Optimized): {added_str}", bullet_style))
-        
     story.append(Spacer(1, 4))
 
-    # 5. WORK EXPERIENCE / INTERNSHIP
     exp_lines = sections.get("experience", [])
     if exp_lines:
         story.append(Paragraph("EXPERIENCE & INTERNSHIPS", section_heading_style))
         story.append(HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#1e293b'), spaceBefore=1, spaceAfter=6))
         
+        merged_exp = []
         for line in exp_lines:
+            if is_bullet_line(line) or "pvt" in line.lower() or "ltd" in line.lower() or "internship" in line.lower() or "company" in line.lower():
+                merged_exp.append(line.strip())
+            else:
+                if merged_exp:
+                    merged_exp[-1] += " " + line.strip()
+                else:
+                    merged_exp.append(line.strip())
+                    
+        for line in merged_exp:
             if is_bullet_line(line):
                 clean_bullet = strip_bullet_prefix(line)
                 story.append(Paragraph(f"&bull; {clean_bullet}", bullet_style))
@@ -251,32 +267,39 @@ def build_single_column_ats_pdf(resume_text, missing_keywords=None):
                 story.append(Paragraph(f"<b>{line}</b>", item_title_style))
         story.append(Spacer(1, 4))
 
-    # 6. PROJECTS
     proj_lines = sections.get("projects", [])
     if proj_lines:
         story.append(Paragraph("PROJECTS", section_heading_style))
         story.append(HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#1e293b'), spaceBefore=1, spaceAfter=6))
         
+        merged_proj = []
         for line in proj_lines:
             if is_bullet_line(line):
-                clean_bullet = strip_bullet_prefix(line)
-                story.append(Paragraph(f"&bull; {clean_bullet}", bullet_style))
+                merged_proj.append(line.strip())
             else:
-                story.append(Paragraph(f"<b>{line}</b>", item_title_style))
+                if merged_proj:
+                    merged_proj[-1] += " " + line.strip()
+                else:
+                    merged_proj.append(line.strip())
+                    
+        for line in merged_proj:
+            clean_bullet = strip_bullet_prefix(line)
+            if ":" in clean_bullet:
+                parts = clean_bullet.split(":", 1)
+                formatted_bullet = f"<b>{parts[0]}:</b>{parts[1]}"
+                story.append(Paragraph(f"&bull; {formatted_bullet}", bullet_style))
+            else:
+                story.append(Paragraph(f"&bull; {clean_bullet}", bullet_style))
         story.append(Spacer(1, 4))
 
-    # 7. CERTIFICATIONS
     cert_lines = sections.get("certificates", [])
     if cert_lines:
         story.append(Paragraph("CERTIFICATIONS", section_heading_style))
         story.append(HRFlowable(width="100%", thickness=0.75, color=colors.HexColor('#1e293b'), spaceBefore=1, spaceAfter=6))
         
         for line in cert_lines:
-            if is_bullet_line(line):
-                clean_bullet = strip_bullet_prefix(line)
-                story.append(Paragraph(f"&bull; {clean_bullet}", bullet_style))
-            else:
-                story.append(Paragraph(f"&bull; {line}", bullet_style))
+            clean_bullet = strip_bullet_prefix(line)
+            story.append(Paragraph(f"&bull; {clean_bullet}", bullet_style))
 
     doc.build(story)
     buffer.seek(0)
