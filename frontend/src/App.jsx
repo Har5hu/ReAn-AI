@@ -59,6 +59,7 @@ function App() {
   });
 
   const [pageView, setPageView] = useState('review'); // 'review' | 'inspector' | 'templates' | 'history'
+  const [isViewingHistoryReport, setIsViewingHistoryReport] = useState(false);
   const [activeTab, setActiveTab] = useState('skills');
 
   const [file, setFile] = useState(null);
@@ -129,7 +130,12 @@ function App() {
 
   const handleSelectHistoryScanInCurrentTab = (scanItem) => {
     if (scanItem && scanItem.results) {
-      setResults(scanItem.results);
+      const displayResults = { 
+        ...scanItem.results, 
+        _history_job_description: scanItem.jobDescriptionText 
+      };
+      setResults(displayResults);
+      setIsViewingHistoryReport(true);
       setPageView('review');
       setActiveTab('skills');
     }
@@ -226,6 +232,7 @@ function App() {
       response.data.job_domain = detectedRole;
 
       setResults(response.data);
+      setIsViewingHistoryReport(false);
       setActiveTab('skills');
       setPageView('review');
 
@@ -235,6 +242,7 @@ function App() {
          score: response.data.overall_score,
          jobDomain: detectedRole,
          resumeFilename: file.name,
+         jobDescriptionText: jobDescription.trim(),
          results: response.data
       };
       
@@ -273,7 +281,13 @@ function App() {
         <div className="nav-links">
           <button 
             className={`nav-tab ${pageView === 'review' ? 'active' : ''}`}
-            onClick={() => setPageView('review')}
+            onClick={() => {
+              if (isViewingHistoryReport) {
+                setResults(null);
+                setIsViewingHistoryReport(false);
+              }
+              setPageView('review');
+            }}
           >
             <LayoutDashboard size={16} />
             Diagnostic Review
@@ -324,8 +338,9 @@ function App() {
         {/* VIEW 1: DIAGNOSTIC REVIEW */}
         {pageView === 'review' && (
           <>
-            {/* STATE A: Show Input & Upload Box Always */}
-            <section className="input-section-container">
+            {/* STATE A: Show Input & Upload Box Always (Unless Viewing History) */}
+            {!isViewingHistoryReport && (
+              <section className="input-section-container">
               <div className="input-grid">
                 <div className="input-card">
                   <div className="card-heading">
@@ -371,6 +386,7 @@ function App() {
                 </button>
               </div>
             </section>
+            )}
             
             {!results && <EmptyInsights name={currentUser.full_name} />}
 
@@ -378,6 +394,18 @@ function App() {
             {results && (
               <div className="dashboard-results-container clean-report-mode">
                 
+                {isViewingHistoryReport && (
+                  <div className="history-description-banner" style={{background: '#f8f9fc', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
+                    <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'}}>
+                      <Clock size={16} color="#64748b" />
+                      Original Target Job Requirements Used for this Analysis
+                    </h3>
+                    <p style={{fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap', margin: 0, maxHeight: '100px', overflowY: 'auto'}}>
+                      {results._history_job_description || "No job description was saved for this earlier scan."}
+                    </p>
+                  </div>
+                )}
+
                 {/* 1-Click PDF Generator Banner */}
                 <div className="pdf-quick-banner">
                   <div className="banner-info">
