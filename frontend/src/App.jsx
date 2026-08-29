@@ -394,18 +394,6 @@ function App() {
             {results && (
               <div className="dashboard-results-container clean-report-mode">
                 
-                {isViewingHistoryReport && (
-                  <div className="history-description-banner" style={{background: '#f8f9fc', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0'}}>
-                    <h3 style={{fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'}}>
-                      <Clock size={16} color="#64748b" />
-                      Original Target Job Requirements Used for this Analysis
-                    </h3>
-                    <p style={{fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap', margin: 0, maxHeight: '100px', overflowY: 'auto'}}>
-                      {results._history_job_description || "No job description was saved for this earlier scan."}
-                    </p>
-                  </div>
-                )}
-
                 {/* 1-Click PDF Generator Banner */}
                 <div className="pdf-quick-banner">
                   <div className="banner-info">
