@@ -377,20 +377,8 @@ function App() {
             {/* STATE B: SCAN REPORT ACTIVE -> Clean Full-Width Diagnostic Review (No Upload Cards!) */}
             {results && (
               <div className="dashboard-results-container clean-report-mode">
-                {/* Clean Top Report Action Header */}
-                <div className="report-view-header">
-                  <button className="back-new-scan-btn" onClick={handleResetScan}>
-                    <ArrowLeft size={16} /> Run New Resume Scan
-                  </button>
-                  <div className="report-title-badge">
-                    <span>Diagnostic Review Report</span> • <strong>{formatDisplayRole(results.job_domain)}</strong>
-                  </div>
-                  <button className="reset-report-btn" onClick={handleResetScan}>
-                    <RotateCcw size={15} /> Clear Saved Report
-                  </button>
-                </div>
-
-                {/* Prominent Corrected PDF Banner */}
+                
+                {/* 1-Click PDF Generator Banner */}
                 <div className="pdf-quick-banner">
                   <div className="banner-info">
                     <Download size={24} className="banner-icon" />
