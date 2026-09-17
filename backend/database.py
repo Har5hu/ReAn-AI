@@ -135,5 +135,14 @@ def delete_user_scan(user_id, scan_id):
     conn.close()
     return True
 
+def delete_all_user_scans(user_id):
+    """Deletes all scan records belonging to a user."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM scans WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return True
+
 # Auto-initialize database on import
 init_db()

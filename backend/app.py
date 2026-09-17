@@ -103,6 +103,15 @@ def remove_scan(scan_id):
     delete_user_scan(user["id"], scan_id)
     return jsonify({"message": "Scan deleted successfully."})
 
+@app.route("/api/user/scans", methods=["DELETE"])
+def api_delete_all_scans():
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    from database import delete_all_user_scans
+    delete_all_user_scans(user["id"])
+    return jsonify({"message": "All scans deleted successfully."})
+
 # --- ATS ENGINE ROUTES ---
 
 @app.route("/analyze", methods=["POST"])

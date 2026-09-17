@@ -54,7 +54,7 @@ function App() {
   const [history, setHistory] = useState(() => {
     if (!currentUser) return [];
     const userKey = `ats_user_history_${currentUser.id}`;
-    const savedHistory = localStorage.getItem(userKey) || localStorage.getItem('scanHistory');
+    const savedHistory = localStorage.getItem(userKey);
     return savedHistory ? JSON.parse(savedHistory) : [];
   });
 
@@ -88,21 +88,19 @@ function App() {
         headers: { Authorization: `Bearer ${authToken}` }
       })
       .then(res => {
-        if (res.data.scans && res.data.scans.length > 0) {
-          const formatted = res.data.scans.map(s => ({
-            id: s.id,
-            date: s.scan_date,
-            score: s.score,
-            jobDomain: formatDisplayRole(s.job_domain),
-            resumeFilename: s.resume_filename || "Resume.pdf",
-            results: s.results
-          }));
-          setHistory(formatted);
-          localStorage.setItem(userKey, JSON.stringify(formatted));
-          localStorage.setItem('scanHistory', JSON.stringify(formatted));
-        }
+        const scanList = res.data.scans || res.data || [];
+        const formatted = scanList.map(s => ({
+          id: s.id,
+          date: s.scan_date,
+          score: s.score,
+          jobDomain: formatDisplayRole(s.job_domain),
+          resumeFilename: s.resume_filename || "Resume.pdf",
+          results: s.results
+        }));
+        setHistory(formatted);
+        localStorage.setItem(userKey, JSON.stringify(formatted));
       })
-      .catch(err => console.log("Account scan sync notice:", err.message));
+      .catch(err => console.error("Error fetching history:", err));
     }
   }, [authToken, currentUser]);
 
@@ -190,11 +188,19 @@ function App() {
     }
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
     if (window.confirm('Are you sure you want to clear your scan history list?')) {
-      setHistory([]);
-      if (currentUser) {
-        localStorage.removeItem(`ats_user_history_${currentUser.id}`);
+      try {
+        if (currentUser && authToken) {
+          await axios.delete('http://127.0.0.1:5000/api/user/scans', {
+            headers: { Authorization: `Bearer ${authToken}` }
+          });
+          localStorage.removeItem(`ats_user_history_${currentUser.id}`);
+        }
+        localStorage.removeItem('scanHistory');
+        setHistory([]);
+      } catch (err) {
+        console.error("Error clearing history:", err);
       }
     }
   };
