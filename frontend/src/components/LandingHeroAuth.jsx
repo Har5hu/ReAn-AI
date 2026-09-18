@@ -16,9 +16,13 @@ function LandingHeroAuth({ onAuthSuccess }) {
     setError(null);
     setLoading(true);
 
+    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      ? 'http://127.0.0.1:5000' 
+      : 'https://rean-ai-backend.onrender.com';
+
     const endpoint = isLoginView 
-      ? 'http://127.0.0.1:5000/api/auth/login' 
-      : 'http://127.0.0.1:5000/api/auth/register';
+      ? `${API_BASE_URL}/api/auth/login` 
+      : `${API_BASE_URL}/api/auth/register`;
 
     const payload = isLoginView 
       ? { email: email.trim(), password: password.trim() }
