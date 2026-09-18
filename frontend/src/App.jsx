@@ -12,6 +12,10 @@ import ResumeTemplates from './components/ResumeTemplates';
 import LandingHeroAuth from './components/LandingHeroAuth';
 import './index.css';
 
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+  ? 'http://127.0.0.1:5000' 
+  : 'https://rean-ai-backend.onrender.com';
+
 function formatDisplayRole(domain) {
   if (!domain || domain.toLowerCase() === "technical" || domain.toLowerCase() === "technical role") {
     return "Data Analyst";
@@ -84,7 +88,7 @@ function App() {
     if (authToken && currentUser) {
       const userKey = `ats_user_history_${currentUser.id}`;
       
-      axios.get('http://127.0.0.1:5000/api/user/scans', {
+      axios.get(`${API_BASE_URL}/api/user/scans`, {
         headers: { Authorization: `Bearer ${authToken}` }
       })
       .then(res => {
@@ -143,7 +147,7 @@ function App() {
     if (!window.confirm("Are you sure you want to delete this scan report from your account?")) return;
     try {
       if (authToken) {
-        await axios.delete(`http://127.0.0.1:5000/api/user/scans/${scanId}`, {
+        await axios.delete(`${API_BASE_URL}/api/user/scans/${scanId}`, {
           headers: { Authorization: `Bearer ${authToken}` }
         });
       }
@@ -165,7 +169,7 @@ function App() {
       const rawText = targetResults?.raw_extracted_text || "";
 
       const response = await axios.post(
-        'http://127.0.0.1:5000/generate_pdf',
+        `${API_BASE_URL}/generate_pdf`,
         {
           resume_text: rawText,
           missing_keywords: missingHard
@@ -192,7 +196,7 @@ function App() {
     if (window.confirm('Are you sure you want to clear your scan history list?')) {
       try {
         if (currentUser && authToken) {
-          await axios.delete('http://127.0.0.1:5000/api/user/scans', {
+          await axios.delete(`${API_BASE_URL}/api/user/scans`, {
             headers: { Authorization: `Bearer ${authToken}` }
           });
           localStorage.removeItem(`ats_user_history_${currentUser.id}`);
@@ -232,7 +236,7 @@ function App() {
     }
 
     try {
-      const response = await axios.post('http://127.0.0.1:5000/analyze', formData, { headers });
+      const response = await axios.post(`${API_BASE_URL}/analyze`, formData, { headers });
       
       const detectedRole = formatDisplayRole(response.data.job_domain);
       response.data.job_domain = detectedRole;

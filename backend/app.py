@@ -11,7 +11,7 @@ from database import create_user, verify_user_credentials, get_user_by_id, save_
 from auth import generate_token, verify_token
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "https://rean-ai-eight.vercel.app"]}})
 
 def get_current_user():
     auth_header = request.headers.get("Authorization", "")
